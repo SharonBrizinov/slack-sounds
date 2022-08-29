@@ -12,7 +12,7 @@ https://user-images.githubusercontent.com/519424/187280445-04c8d0c4-6c62-426e-b6
 ## The Short Story
 In essence, Slack does not allow users to customize their sound notifications as they wish but I wanted to choose my own notification sound. After a bit of research I discovered that Slack stores the sound files in multiple locations, but the most important location is a directory with cache files which have a simple yet proprietary binary structure. After a bit of playing I was able to re-create the structure of Slack cache files and I got my desired ICQ sound! I also wrote a generic tool to do this for you.
 
-## The Long Story
+## The Longer Story: The Stages of Grief
 #### Fail #1: Denial
 So, I wanted to change my Slack notification sound to the classical Uh-Oh! ICQ sound. Sounds easy. I went to Slack Preference --> Notifications but could not find how to choose my own customized sound. Intrigued, I looked online but still could not find how to do this. Looks like Slack limits the user to a few predefined sounds only.
 
@@ -94,5 +94,5 @@ After a bit of playing with the files there I understood that `_s` cache files a
 Eventually I wrote a quick-and-dirty Python script which receives a path to a `.mp3` sound file and edits the `Hummus` cache file with the customized file. Great Success.
 
 
-#### Summary
+## Summary
 It was a fun journey into understanding how Slack stores and uses media files. The default media files within the .asar archive are probably there just in case there will be a connectivity issue in the first time Slack is loaded. The real deal are the Slack cache files which are being used heavily by Slack across many different functions, including notification sounds :)
