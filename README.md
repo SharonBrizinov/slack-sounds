@@ -63,7 +63,7 @@ At this point I determined that Slack is probably getting the sound files remote
 <img width="1057" alt="Slack___Sharon_Brizinov___Claroty" src="https://user-images.githubusercontent.com/519424/187303405-f399fb5e-4e81-481e-8e3c-66388af2f166.png">
 </p>
 
-I selected the same sound file again but this time now request was issued. Probably a cache... wait! Maybe something similar happens with our Slack Electron app? but instead of asking the media every time, there will be a cache which stores the last response. This will explain why all of our file modifications didn't work and why we don't see any `.mp3` file loaded in `lsof`.
+I selected the same sound file again but this time no request was fired. Probably a cache... wait! Maybe something similar happens with our Slack Electron app? but instead of asking the media every time, there will be a cache which stores the last response. This will explain why all of our file modifications didn't work and why we don't see any `.mp3` file loaded in `lsof`.
 
 #### Success!
 Using `lsof` I knew where Slack stores it's temporary data (databases, cache files, downloads, index, etc). There are two options - 
