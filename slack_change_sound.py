@@ -45,8 +45,8 @@ hummus_sound_cache_filepath = dir_slack + "/" + hummus_sound_cache_filename
 print("[-] Found hummus sound cache file '{}'".format(hummus_sound_cache_filename))
 
 
-
-req_resource = "1/0/" + "https://a.slack-edge.com/bv1-9/hummus-200e354.mp3"
+#req_resource = "1/0/" + "https://a.slack-edge.com/bv1-9/hummus-200e354.mp3" # previous was bv1-9
+req_resource = "1/0/" + "https://a.slack-edge.com/bv1-10/hummus-200e354.mp3" # bv1-10 <--- looks like this number changes with updates..
 new_sound_file = sys.argv[1]
 new_file_data = open(new_sound_file, "rb").read()
 print("[-] Overwriting cache file '{}' with '{}'".format(hummus_sound_cache_filepath, new_sound_file))
