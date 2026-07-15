@@ -1,4 +1,5 @@
 import binascii
+import re
 import struct
 import sys
 import os
@@ -32,21 +33,37 @@ else:
 
 print("[-] Slack dir found at '{}'".format(dir_slack))
 print("[-] Searching for hummus sound cache file")
-#import ipdb;ipdb.set_trace() 
-command_grep = os.popen("grep -ir hummus-200e354.mp3 \"{}\"".format(dir_slack) + "/*_s") # example: 13f007daa736b6cb_s
-command_grep_output = command_grep.read()
 
-if not command_grep_output or not "matches" in command_grep_output:
+# Slack changes the bundle version and file hash on every release, so we
+# extract the current resource path from the cache instead of hardcoding it.
+candidates = []
+for filename in os.listdir(dir_slack):
+	if not filename.endswith("_s"):
+		continue
+	filepath = os.path.join(dir_slack, filename)
+	try:
+		with open(filepath, "rb") as f:
+			data = f.read()
+	except OSError:
+		continue
+	if b"hummus" not in data.lower():
+		continue
+	match = re.search(rb"1/0/https://[^\x00]*?hummus[^\x00]*?\.mp3", data, re.IGNORECASE)
+	if not match:
+		continue
+	candidates.append((os.path.getmtime(filepath), filepath, match.group(0)))
+
+if not candidates:
 	print("ERROR: No Hummus sound cache file! Go to Slack-->Preferences-->Notifications-->Select Hummus, then close Slack and try again")
 	sys.exit(1)
 
-hummus_sound_cache_filename = command_grep_output.split("Cache_Data/")[1].split(" matches")[0]
-hummus_sound_cache_filepath = dir_slack + "/" + hummus_sound_cache_filename
-print("[-] Found hummus sound cache file '{}'".format(hummus_sound_cache_filename))
+# Pick the most recently modified match in case stale entries linger.
+candidates.sort(key=lambda c: c[0], reverse=True)
+_, hummus_sound_cache_filepath, req_resource_bytes = candidates[0]
+req_resource = req_resource_bytes.decode()
+print("[-] Found hummus sound cache file '{}'".format(hummus_sound_cache_filepath))
+print("[-] Using resource path '{}'".format(req_resource))
 
-
-#req_resource = "1/0/" + "https://a.slack-edge.com/bv1-9/hummus-200e354.mp3" # previous was bv1-9
-req_resource = "1/0/" + "https://a.slack-edge.com/bv1-10/hummus-200e354.mp3" # bv1-10 <--- looks like this number changes with updates..
 new_sound_file = sys.argv[1]
 new_file_data = open(new_sound_file, "rb").read()
 print("[-] Overwriting cache file '{}' with '{}'".format(hummus_sound_cache_filepath, new_sound_file))
