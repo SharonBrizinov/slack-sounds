@@ -4,10 +4,20 @@ TL;DR: This is a story of how I felt nostalgic for the old Uh-Oh! ICQ sound and 
 
 https://user-images.githubusercontent.com/519424/187280445-04c8d0c4-6c62-426e-b600-f63cad82fa4e.mov
 
-## Instructions (Mac OSX only for now)
-1. Change Slack’s notification sound to `Hummus` (we are going to edit it) `Slack-->Preferences-->Notifications-->Select Hummus`
-2. run `python3 slack_change_sound.py sound.mp3`
-3. Restart Slack
+## Instructions (macOS and Linux)
+1. Change Slack’s notification sound to `Hummus` (we are going to edit it) `Slack-->Preferences-->Notifications-->Select Hummus` — only needed the first time, so this cache entry exists
+2. run `python3 slack_change_sound.py sound.mp3` — this quits Slack (if running), edits the cache, and relaunches it for you
+3. If this is the first time, re-select Hummus once more so Slack picks up the entry
+
+Works the same way on Linux — confirmed on Fedora with the native RPM build of Slack (cache format is byte-identical to macOS, since both run the same Electron/Chromium disk cache implementation). The script auto-detects the cache dir across:
+- macOS (`~/Library/Application Support/Slack/...` and the sandboxed container path)
+- Linux native install (`~/.config/Slack/Cache/Cache_Data`)
+- Linux snap (`~/snap/slack/current/.config/Slack/Cache/Cache_Data`)
+- Linux flatpak (`~/.var/app/com.slack.Slack/config/Slack/Cache/Cache_Data`)
+
+**Note:** Slack caps notification sound playback at ~1 second regardless of the source file's length — this appears to be a hardcoded limit in Slack's own JS, not something the cache swap can control. Pick source clips accordingly; a longer file just gets cut at the same ~1s mark.
+
+The script fully quits Slack before editing the cache and relaunches it afterward — editing the cache file while Slack is still running can cause it to detect the change as corruption and silently re-fetch the original sound from Slack's servers, undoing the edit. On Linux it relaunches via whatever `slack` resolves to on `PATH`; on macOS via `open -a Slack`.
 
 ## The Short Story
 In essence, Slack does not allow users to customize their sound notifications as they wish but I wanted to choose my own notification sound. After a bit of research I discovered that Slack stores the sound files in multiple locations, but the most important location is a directory with cache files which have a simple yet proprietary binary structure. After a bit of playing I was able to re-create the structure of Slack cache files and I got my desired ICQ sound! I also wrote a generic tool to do this for you.
