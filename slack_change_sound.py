@@ -1,8 +1,11 @@
 import binascii
 import re
 import struct
+import subprocess
+import shutil
 import sys
 import os
+import time
 
 
 
@@ -12,24 +15,64 @@ def crc(d):
 def x(d):
 	return binascii.unhexlify(d.replace(" ",""))
 
+def is_slack_running():
+	if sys.platform == "darwin":
+		return subprocess.run(["pgrep", "-x", "Slack"], stdout=subprocess.DEVNULL).returncode == 0
+	return subprocess.run(["pgrep", "-x", "slack"], stdout=subprocess.DEVNULL).returncode == 0
+
+def quit_slack():
+	# Editing the cache file while Slack is running risks it treating the
+	# change as corruption and silently re-fetching the original from
+	# Slack's servers, undoing the edit.
+	if not is_slack_running():
+		return
+	print("[-] Quitting Slack")
+	if sys.platform == "darwin":
+		subprocess.run(["osascript", "-e", 'quit app "Slack"'])
+	else:
+		subprocess.run(["pkill", "-x", "slack"])
+	for _ in range(20):
+		if not is_slack_running():
+			return
+		time.sleep(0.5)
+	print("ERROR: Slack did not quit in time, close it manually and re-run")
+	sys.exit(1)
+
+def relaunch_slack():
+	print("[-] Relaunching Slack")
+	if sys.platform == "darwin":
+		subprocess.Popen(["open", "-a", "Slack"])
+		return
+	slack_bin = shutil.which("slack")
+	if slack_bin:
+		subprocess.Popen([slack_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+	else:
+		print("[-] Could not find 'slack' on PATH, please relaunch it manually")
+
 if len(sys.argv) != 2:
 	print("ERROR: python3 {} NEW_SOUND_FILE.mp3".format(sys.argv[0]))
 	sys.exit(1)
 
+quit_slack()
+
 print("[-] Searching for Slack dir")
 dir_slack = None
-dir_1 = os.path.expanduser('~') + "/Library/Application Support/Slack/Cache/Cache_Data"
-dir_2 = os.path.expanduser('~') + "/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Cache/Cache_Data"
-is_dir_1_exists = os.path.exists(dir_1)
-if not is_dir_1_exists:
-	is_dir_2_exists = os.path.exists(dir_2)
-	if not is_dir_2_exists:
-		print("ERROR: NO ACTIVE SLACK DIR!")
-		sys.exit(1)
-	else:
-		dir_slack = dir_2
-else:
-	dir_slack = dir_1
+home = os.path.expanduser('~')
+candidate_dirs = [
+	home + "/Library/Application Support/Slack/Cache/Cache_Data",                                # macOS
+	home + "/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Cache/Cache_Data",  # macOS (sandboxed)
+	home + "/.config/Slack/Cache/Cache_Data",                                                     # Linux (native rpm/deb install)
+	home + "/snap/slack/current/.config/Slack/Cache/Cache_Data",                                  # Linux (snap)
+	home + "/.var/app/com.slack.Slack/config/Slack/Cache/Cache_Data",                              # Linux (flatpak)
+]
+for d in candidate_dirs:
+	if os.path.exists(d):
+		dir_slack = d
+		break
+
+if dir_slack is None:
+	print("ERROR: NO ACTIVE SLACK DIR!")
+	sys.exit(1)
 
 print("[-] Slack dir found at '{}'".format(dir_slack))
 print("[-] Searching for hummus sound cache file")
@@ -83,4 +126,6 @@ new_cache_data += new_file_data
 with open(hummus_sound_cache_filepath, "wb") as f:
 	f.write(new_cache_data)
 
-print("[-] DONE! Please restart Slack and change the notification sound to Hummus (Slack-->Preferences-->Notifications-->Select Hummus)")
+relaunch_slack()
+
+print("[-] DONE! If this is the first time editing this sound, go to Slack-->Preferences-->Notifications-->Select Hummus once so this cache entry gets used.")
