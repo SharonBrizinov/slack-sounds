@@ -49,6 +49,24 @@ def relaunch_slack():
 	else:
 		print("[-] Could not find 'slack' on PATH, please relaunch it manually")
 
+# On macOS 12+ Slack pins notificationPlayback to "system" on every launch, so the
+# OS plays the sound by name out of the app bundle and never reads the cache entry
+# below - that one only feeds the Preferences preview. Linux and macOS 11 and older
+# stay on "web" playback, where the cache entry is the whole story.
+BUNDLE_SOUND_PATH = "/Applications/Slack.app/Contents/Resources/hummus.mp3"
+
+def patch_native_sound(sound_data):
+	# macOS 14+ App Management refuses this write unless the calling terminal was
+	# granted it. ~/Library/Sounds is not a way around it - the bundle copy wins.
+	try:
+		with open(BUNDLE_SOUND_PATH, "wb") as f:
+			f.write(sound_data)
+	except OSError as e:
+		print("[-] Could not write '{}' ({})".format(BUNDLE_SOUND_PATH, e))
+		return e
+	print("[-] Replaced the sound macOS plays: '{}'".format(BUNDLE_SOUND_PATH))
+	return None
+
 if len(sys.argv) != 2:
 	print("ERROR: python3 {} NEW_SOUND_FILE.mp3".format(sys.argv[0]))
 	sys.exit(1)
@@ -126,6 +144,16 @@ new_cache_data += new_file_data
 with open(hummus_sound_cache_filepath, "wb") as f:
 	f.write(new_cache_data)
 
+bundle_error = None
+if sys.platform == "darwin":
+	bundle_error = patch_native_sound(new_file_data)
+
 relaunch_slack()
 
 print("[-] DONE! If this is the first time editing this sound, go to Slack-->Preferences-->Notifications-->Select Hummus once so this cache entry gets used.")
+if sys.platform == "darwin" and bundle_error is None:
+	print("[-] NOTE: this breaks the bundle's code-signature seal (Slack still launches) and a Slack update restores the original, so re-run after updates.")
+elif sys.platform == "darwin":
+	print("[-] WARNING: macOS plays notification sounds from the app bundle, so only the Preferences preview changed.")
+	print("             Grant App Management to this terminal (it is per app), then re-run:")
+	print("             open 'x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles'")
