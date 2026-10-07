@@ -21,6 +21,22 @@ Works the same way on Linux — confirmed on Fedora with the native RPM build of
 
 The script fully quits Slack before editing the cache and relaunches it afterward — editing the cache file while Slack is still running can cause it to detect the change as corruption and silently re-fetch the original sound from Slack's servers, undoing the edit. On Linux it relaunches via whatever `slack` resolves to on `PATH`; on macOS via `open -a Slack`.
 
+## Instructions (Windows)
+
+1. Select **Hummus** in Slack's **Preferences → Notifications → Notification sound**, and play its preview once so the complete sound is cached.
+2. With Python installed, run `python slack_change_sound.py "C:\path\to\sound.mp3"` from this repository. Keep `slack_windows.py` beside the script.
+3. Keep Hummus selected, and test both the preview and a real notification.
+
+The Windows implementation detects the standard `%APPDATA%\Slack` profile and Microsoft Store profiles under `%LOCALAPPDATA%\Packages\com.tinyspeck.slackdesktop_*\LocalCache\Roaming\Slack`. It closes Slack, replaces the Hummus response in Chromium's **blockfile v3** cache, and relaunches Slack. It supports both complete responses and the single-range responses used to cache MP3 playback, updating the response size, sparse range bitmap, entry checksums, and cache allocation metadata. Use a non-empty clip of at most 1 MiB; Slack's approximately one-second playback limit still applies.
+
+**Microsoft Store Slack can otherwise play the original sound for real notifications even when the preview is correct.** Windows toasts use `ms-appx:///app/resources/hummus.mp3` when Slack's `notificationPlayback` setting is `"system"`. The script changes the effective setting and saved user choice to `"web"`, and marks the one-time system-playback initialization complete. This makes Slack play the cached custom sound without modifying the protected app installation.
+
+Before writing, the script validates the cache layout and saves the affected files and settings in a timestamped `slack-sounds-backup-*` directory inside the Slack profile. If writing fails, it attempts to restore every affected file. If restoration also fails, it leaves Slack closed and reports the backup location for manual recovery. An unsupported cache format or an incompletely cached Hummus response is reported without changing that profile. Slack updates or clearing the cache can restore the original sound; reselect the preview and rerun the script if needed.
+
+Manually verified on Windows with Microsoft Store Slack **4.52.171**, including preview and actual notification playback. Standard-install profile discovery is covered by automated tests, but actual notification playback on that installation type has not been manually verified.
+
+Run the synthetic cache and settings tests with `python -m unittest discover -s tests -v`. The tests use temporary generated data, not a real Slack account or cache.
+
 ## The Short Story
 In essence, Slack does not allow users to customize their sound notifications as they wish but I wanted to choose my own notification sound. After a bit of research I discovered that Slack stores the sound files in multiple locations, but the most important location is a directory with cache files which have a simple yet proprietary binary structure. After a bit of playing I was able to re-create the structure of Slack cache files and I got my desired ICQ sound! I also wrote a generic tool to do this for you.
 

@@ -71,6 +71,14 @@ if len(sys.argv) != 2:
 	print("ERROR: python3 {} NEW_SOUND_FILE.mp3".format(sys.argv[0]))
 	sys.exit(1)
 
+if sys.platform == "win32":
+	from slack_windows import main
+	try:
+		sys.exit(main(sys.argv[1]))
+	except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+		print("ERROR: {}".format(error))
+		sys.exit(1)
+
 quit_slack()
 
 print("[-] Searching for Slack dir")
